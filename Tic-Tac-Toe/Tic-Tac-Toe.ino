@@ -41,10 +41,30 @@ const int buttonPin_6 = 8;    // the number of the pushbutton pin_1
 const int buttonPin_7 = 9;    // the number of the pushbutton pin_2
 const int buttonPin_8 = 10;    // the number of the pushbutton pin_1
 
-
-const int ledPin_1 = 13;      // the number of the LED pin_1
-const int ledPin_2 = 12;      // the number of the LED pin_2
 const int choose_order_pin = 11; //The number of the choose order button
+
+const int ledRow_0 = 11;
+const int ledRow_1 = 12;
+const int ledRow_2 = 13;
+const int ledColumn_Player_0 = A0;
+const int ledColumn_Computer_0 = A1;
+const int ledColumn_Player_1 = A2;
+const int ledColumn_Computer_1 = A3;
+const int ledColumn_Player_2 = A4;
+const int ledColumn_Computer_2 = A5;
+
+//const int ledColumn_Player_0 = 14;
+//const int ledColumn_Computer_0 = 15;
+//const int ledColumn_Player_1 = 16;
+//const int ledColumn_Computer_1 = 17;
+//const int ledColumn_Player_2 = 18;
+//const int ledColumn_Computer_2 = 19;
+
+uint8_t led0, led1, led2; //used for the led loop
+
+//const int ledPin_1 = 13;      // the number of the LED pin_1
+//const int ledPin_2 = 12;      // the number of the LED pin_2
+//const int choose_order_pin = 11; //The number of the choose order button
 
 // Variables will change:
 int buttonState_0 = HIGH;
@@ -518,20 +538,64 @@ void update_leds(){
     Serial.println();
   }
   Serial.println();
+  
+for(i=0;i<3;i++){ //goes by column
+  if(i==0){
+    digitalWrite(ledRow_0, HIGH);
+    digitalWrite(ledRow_1, LOW);
+    digitalWrite(ledRow_2, LOW);
+  }else if(i==1){
+    digitalWrite(ledRow_0, LOW);
+    digitalWrite(ledRow_1, HIGH);
+    digitalWrite(ledRow_2, LOW);    
+  }else{
+    digitalWrite(ledRow_0, LOW);
+    digitalWrite(ledRow_1, LOW);
+    digitalWrite(ledRow_2, HIGH);
+  }
+  led0 = board[i][0];
+  led1 = board[i][1];
+  led2 = board[i][2];
+  if(led0==1){
+    Serial.print("COMPUTER LED");
+    digitalWrite(ledColumn_Player_0, HIGH); //off
+    digitalWrite(ledColumn_Computer_0, LOW); //on
+    //delay(5000);
+  }else if(led0==2){
+    digitalWrite(ledColumn_Player_0, LOW); //on
+    digitalWrite(ledColumn_Computer_0, HIGH); //off
+  }else{
+    digitalWrite(ledColumn_Player_0, HIGH); //off
+    digitalWrite(ledColumn_Computer_0, HIGH); //off
+  }
+  
+  if(led1==1){
+    digitalWrite(ledColumn_Player_1, HIGH); //off
+    digitalWrite(ledColumn_Computer_1, LOW); //on
+  }else if(led1==2){
+    digitalWrite(ledColumn_Player_1, LOW); //on
+    digitalWrite(ledColumn_Computer_1, HIGH); //off
+  }else{
+    digitalWrite(ledColumn_Player_1, HIGH); //off
+    digitalWrite(ledColumn_Computer_1, HIGH); //off
+  }
+  
+  if(led2==1){
+    digitalWrite(ledColumn_Player_2, HIGH); //off
+    digitalWrite(ledColumn_Computer_2, LOW); //on
+  }else if(led2==2){
+    digitalWrite(ledColumn_Player_2, LOW); //on
+    digitalWrite(ledColumn_Computer_2, HIGH); //off
+  }else{
+    digitalWrite(ledColumn_Player_2, HIGH); //off
+    digitalWrite(ledColumn_Computer_2, HIGH); //off
+  }
+  delay(10);
+  
+}
 }
 
-void update_leds(int board[][3]){
-  //TODO
-  int i, j;
-  for(i = 0; i < 3; ++i){
-    for(j = 0; j < 3; ++j){
-      Serial.print("\t");
-      Serial.print(board[i][j]);
-    }
-    Serial.println();
-  }
-  Serial.println();
-}
+
 
 }
 
@@ -546,6 +610,18 @@ void setup() {
   pinMode(buttonPin_6, INPUT);
   pinMode(buttonPin_7, INPUT);
   pinMode(buttonPin_8, INPUT);
+  
+  pinMode(ledRow_0, OUTPUT);
+  pinMode(ledRow_1, OUTPUT);
+  pinMode(ledRow_2, OUTPUT);
+
+  pinMode(ledColumn_Player_0, OUTPUT);
+  pinMode(ledColumn_Computer_0, OUTPUT);
+  pinMode(ledColumn_Player_1, OUTPUT);
+  pinMode(ledColumn_Computer_1, OUTPUT);
+  pinMode(ledColumn_Player_2, OUTPUT);
+  pinMode(ledColumn_Computer_2, OUTPUT);
+  
 
   Serial.begin(9600);
   tic::time_waiting = millis();
