@@ -130,13 +130,25 @@ int check_buttons() {
   return buttons == 8;
 }
 
+int read_exclusive_button(const int buttonPin){
+  int reading_0 = digitalRead(buttonPin_0), reading_1 = digitalRead(buttonPin_1),
+  reading_2 = digitalRead(buttonPin_2), reading_3 = digitalRead(buttonPin_3),
+  reading_4 = digitalRead(buttonPin_4), reading_5 = digitalRead(buttonPin_5),
+  reading_6 = digitalRead(buttonPin_6), reading_7 = digitalRead(buttonPin_7),
+  reading_8 = digitalRead(buttonPin_8);
+  int buttons =  (reading_0 + reading_1 + reading_2 + reading_3 + reading_4 + reading_5 + reading_6 + reading_7 + reading_8) ;
+  if(buttons == 8)return digitalRead(buttonPin);
+  return -1;
+}
+
 
 /**
  * Decouncing routine, It only works if the button was kept pressed for more than debounceDelay, if it changes the state of a variable 
  * no other button can be pressed while the button is still pressed.
  */
 Pos debounce_button(const int buttonPin, long *lastDebounceTime, long debounceDelay, int *buttonState, int *lastButtonState) {
-  int reading = digitalRead(buttonPin);
+  int reading = read_exclusive_button(buttonPin);
+  if(reading == -1) return create_position(-1, -1);
   if (reading != *lastButtonState) {
     *lastDebounceTime = millis();
   }
@@ -553,7 +565,6 @@ void setup() {
 
 
 void loop() {
-  tic::check_buttons();
   tic::state();
   tic::update_leds();
   //debounce(buttonPin_1, &lastDebounceTime, debounceDelay, &buttonState_1, &ledState_1, &lastButtonState_1, ledPin_1, turn_on_led);
