@@ -13,6 +13,7 @@ const int buttonPin_7 = 9;    // the number of the pushbutton pin_2
 const int buttonPin_8 = 10;    // the number of the pushbutton pin_1
 
 const int choose_order_pin = 11; //The number of the choose order button
+const int led_computer_turn = 0;
 
 const int ledRow_0 = 11;
 const int ledRow_1 = 12;
@@ -23,6 +24,8 @@ const int ledColumn_Player_1 = A2;
 const int ledColumn_Computer_1 = A3;
 const int ledColumn_Player_2 = A4;
 const int ledColumn_Computer_2 = A5;
+
+unsigned long ledTime;
 
 uint8_t led0, led1, led2; //used for the led loop
 
@@ -83,7 +86,7 @@ long debounceDelay = 50;    // the debounce time; increase if the output flicker
 
 long time_waiting = 0; //the time passed until this point.
 
-long waiting_order_time = 5000; //Time to player select if he wants to start playing.
+long waiting_order_time = 1000; //Time to player select if he wants to start playing.
 
 void waiting_order();
 
@@ -100,7 +103,7 @@ int check_buttons() {
   reading_6 = digitalRead(buttonPin_6), reading_7 = digitalRead(buttonPin_7),
   reading_8 = digitalRead(buttonPin_8);
   int buttons =  (reading_0 + reading_1 + reading_2 + reading_3 + reading_4 + reading_5 + reading_6 + reading_7 + reading_8) ;
-  Serial.println(buttons);
+  //Serial.println(buttons);
   return buttons == 8;
 }
 
@@ -112,8 +115,9 @@ int read_exclusive_button(const int buttonPin){
   reading_6 = digitalRead(buttonPin_6), reading_7 = digitalRead(buttonPin_7),
   reading_8 = digitalRead(buttonPin_8);
   int buttons =  (reading_0 + reading_1 + reading_2 + reading_3 + reading_4 + reading_5 + reading_6 + reading_7 + reading_8) ;
-  if(buttons == 8)return digitalRead(buttonPin);
-  return -1;
+  //if(buttons == 8)return digitalRead(buttonPin);
+  //return -1;
+  return (buttons==8);
 }
 
 
@@ -122,8 +126,17 @@ int read_exclusive_button(const int buttonPin){
  * no other button can be pressed while the button is still pressed.
  */
 Pos debounce_button(const int buttonPin, long *lastDebounceTime, long debounceDelay, int *buttonState, int *lastButtonState) {
-  int reading = read_exclusive_button(buttonPin);
-  if(reading == -1) return create_position(-1, -1);
+  //int reading = read_exclusive_button(buttonPin);
+
+  int reading = digitalRead(buttonPin);
+  int exclusiveReceive = read_exclusive_button(buttonPin);
+
+  if((reading==0)&&(!exclusiveReceive)){
+    *lastButtonState = reading;
+    return create_position(-1, -1);
+  }
+  //Serial.println(reading);
+ 
   if (reading != *lastButtonState) {
     *lastDebounceTime = millis();
   }
@@ -360,12 +373,17 @@ void person_turn();
  * We assumed that the AI will always generate a valid movement, so we just have to write it.
  */
 void computer_turn() {
+
+  digitalWrite(led_computer_turn, HIGH);
   Pos next_movement = search_next_position();
   write_player_movement(next_movement, 1);
   if (check_game_over(board))
     state = game_over;
   else
     state = person_turn;
+
+  delay(1000);
+  digitalWrite(led_computer_turn, LOW);
 }
 
 bool check_pos(Pos posit) {
@@ -436,15 +454,37 @@ void update_led(int led, int player0_column, int player1_column){
  */
 void update_leds(){
   int i;
-  for(i=0;i<3;i++){ //goes by column
-    
-    if(i==0)
-      write_rows(HIGH, LOW, LOW);
-    else if(i==1) 
-      write_rows(LOW, HIGH, LOW);
-    else 
-      write_rows(LOW, LOW, HIGH);
-    
+  //for(i=0;i<3;i++){ //goes by column
+//  if(millis()-ledTime<30){
+//      write_rows(HIGH, LOW, LOW);
+//      i = 0;
+//  }
+//  else if(millis()-ledTime<60){
+//      write_rows(LOW, HIGH, LOW);
+//      i = 1;
+//  }
+//  else if(millis()-ledTime<90){
+//      write_rows(LOW, LOW, HIGH);
+//      i = 2;
+//  }
+//  else{
+//    i = 0;
+//    ledTime = millis();
+//  }
+    for(i=0;i<3;i++){ //goes by column
+  if(i==0){
+    digitalWrite(ledRow_0, HIGH);
+    digitalWrite(ledRow_1, LOW);
+    digitalWrite(ledRow_2, LOW);
+  }else if(i==1){
+    digitalWrite(ledRow_0, LOW);
+    digitalWrite(ledRow_1, HIGH);
+    digitalWrite(ledRow_2, LOW);    
+  }else{
+    digitalWrite(ledRow_0, LOW);
+    digitalWrite(ledRow_1, LOW);
+    digitalWrite(ledRow_2, HIGH);
+  }
     led0 = board[i][0];
     led1 = board[i][1];
     led2 = board[i][2];
@@ -453,7 +493,14 @@ void update_leds(){
     update_led(led1, ledColumn_Player_1, ledColumn_Computer_1);
     update_led(led2, ledColumn_Player_2, ledColumn_Computer_2);
     
-    delay(10);   
+    delay(5);
+    digitalWrite(ledColumn_Player_0, HIGH); //off
+    digitalWrite(ledColumn_Player_1, HIGH); //off
+    digitalWrite(ledColumn_Player_2, HIGH); //off
+    digitalWrite(ledColumn_Computer_0, HIGH); //off
+    digitalWrite(ledColumn_Computer_1, HIGH); //off
+    digitalWrite(ledColumn_Computer_2, HIGH); //off
+    
   }
 }
 
@@ -470,6 +517,8 @@ void setup() {
   pinMode(buttonPin_6, INPUT);
   pinMode(buttonPin_7, INPUT);
   pinMode(buttonPin_8, INPUT);
+
+  pinMode(led_computer_turn, OUTPUT);
   
   pinMode(ledRow_0, OUTPUT);
   pinMode(ledRow_1, OUTPUT);
@@ -483,8 +532,9 @@ void setup() {
   pinMode(ledColumn_Computer_2, OUTPUT);
   
 
-  Serial.begin(9600);
+  //Serial.begin(9600);
   tic::time_waiting = millis();
+  ledTime = millis();
 }
 
 
