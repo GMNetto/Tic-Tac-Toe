@@ -405,14 +405,9 @@ void person_turn() {
     else
       state = computer_turn;
       
-  } else {
-    state = person_turn;
-  }
+  } 
 }
 
-void selected_order() {
-  state = person_turn;
-}
 
 /**
  * Wait until the user selects if he wants to be start the game.
@@ -471,20 +466,20 @@ void update_leds(){
 //    i = 0;
 //    ledTime = millis();
 //  }
-    for(i=0;i<3;i++){ //goes by column
-  if(i==0){
-    digitalWrite(ledRow_0, HIGH);
-    digitalWrite(ledRow_1, LOW);
-    digitalWrite(ledRow_2, LOW);
-  }else if(i==1){
-    digitalWrite(ledRow_0, LOW);
-    digitalWrite(ledRow_1, HIGH);
-    digitalWrite(ledRow_2, LOW);    
-  }else{
-    digitalWrite(ledRow_0, LOW);
-    digitalWrite(ledRow_1, LOW);
-    digitalWrite(ledRow_2, HIGH);
-  }
+  for(i=0;i<3;i++){ //goes by column
+    if(i==0){
+      digitalWrite(ledRow_0, HIGH);
+      digitalWrite(ledRow_1, LOW);
+      digitalWrite(ledRow_2, LOW);
+    }else if(i==1){
+      digitalWrite(ledRow_0, LOW);
+      digitalWrite(ledRow_1, HIGH);
+      digitalWrite(ledRow_2, LOW);    
+    }else{
+      digitalWrite(ledRow_0, LOW);
+      digitalWrite(ledRow_1, LOW);
+      digitalWrite(ledRow_2, HIGH);
+    }
     led0 = board[i][0];
     led1 = board[i][1];
     led2 = board[i][2];
