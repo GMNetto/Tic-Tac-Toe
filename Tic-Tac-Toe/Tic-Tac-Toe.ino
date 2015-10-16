@@ -12,9 +12,11 @@ const int buttonPin_6 = 8;    // the number of the pushbutton pin_1
 const int buttonPin_7 = 9;    // the number of the pushbutton pin_2
 const int buttonPin_8 = 10;    // the number of the pushbutton pin_1
 
-const int choose_order_pin = 11; //The number of the choose order button
+const int choose_order_pin = 1; //The number of the choose order button
 const int led_computer_turn = 0;
 
+uint8_t ledRow_Active = 0;
+uint8_t LEDS = HIGH;
 const int ledRow_0 = 11;
 const int ledRow_1 = 12;
 const int ledRow_2 = 13;
@@ -25,7 +27,7 @@ const int ledColumn_Computer_1 = A3;
 const int ledColumn_Player_2 = A4;
 const int ledColumn_Computer_2 = A5;
 
-unsigned long ledTime;
+unsigned long ledTime, gameOver_time, ledTimer;
 
 uint8_t led0, led1, led2; //used for the led loop
 
@@ -57,6 +59,7 @@ namespace tic {
 typedef struct {
   int x, y;
 } Pos;
+;
 
 Pos create_position(int x, int y) {
   Pos pos;
@@ -86,7 +89,7 @@ long debounceDelay = 50;    // the debounce time; increase if the output flicker
 
 long time_waiting = 0; //the time passed until this point.
 
-long waiting_order_time = 1000; //Time to player select if he wants to start playing.
+long waiting_order_time = 3000; //Time to player select if he wants to start playing.
 
 void waiting_order();
 
@@ -156,7 +159,10 @@ Pos debounce_button(const int buttonPin, long *lastDebounceTime, long debounceDe
 
 
 void game_over() {
-  //TODO
+  if((millis()-gameOver_time>1000)){
+    gameOver_time = millis();
+    LEDS=!LEDS;
+  }
 }
 
 typedef struct {
@@ -413,10 +419,15 @@ void person_turn() {
  * Wait until the user selects if he wants to be start the game.
  */
 void waiting_order() {
-  Pos pos = debounce_button(choose_order_pin, &lastDebounceTime, debounceDelay, &order_button_state, &last_order_state);
-  if(pos.x == 3 && pos.y == 0){
+  //Pos pos = debounce_button(choose_order_pin, &lastDebounceTime, debounceDelay, &order_button_state, &last_order_state);
+  //if(pos.x == 3 && pos.y == 0){
+  //  state = person_turn;
+  //}
+  if(digitalRead(choose_order_pin)==LOW){
     state = person_turn;
+    digitalWrite(led_computer_turn, LOW);
   }
+  
   if ((millis() - time_waiting) > waiting_order_time) {
     state = computer_turn;
   }
@@ -442,13 +453,21 @@ void update_led(int led, int player0_column, int player1_column){
     write_players_columns(player0_column, HIGH, player1_column, HIGH);
 }
 
+void turn_off_leds(){
+  digitalWrite(ledColumn_Player_0, HIGH); //off
+  digitalWrite(ledColumn_Player_1, HIGH); //off
+  digitalWrite(ledColumn_Player_2, HIGH); //off
+  digitalWrite(ledColumn_Computer_0, HIGH); //off
+  digitalWrite(ledColumn_Computer_1, HIGH); //off
+  digitalWrite(ledColumn_Computer_2, HIGH); //off
+}
+
 /**
  * Responsible to turn on the leds of the board 3x3 with 1.
  * HIGH = off
  * LOW = on
  */
 void update_leds(){
-  int i;
   //for(i=0;i<3;i++){ //goes by column
 //  if(millis()-ledTime<30){
 //      write_rows(HIGH, LOW, LOW);
@@ -466,12 +485,16 @@ void update_leds(){
 //    i = 0;
 //    ledTime = millis();
 //  }
-  for(i=0;i<3;i++){ //goes by column
-    if(i==0){
+if(LEDS==HIGH){
+  ledTimer = millis()-ledTime;
+  if(ledTimer>=6){
+    turn_off_leds();
+    ledRow_Active = (ledRow_Active+1)%3;
+    if(ledRow_Active==0){
       digitalWrite(ledRow_0, HIGH);
       digitalWrite(ledRow_1, LOW);
       digitalWrite(ledRow_2, LOW);
-    }else if(i==1){
+    }else if(ledRow_Active==1){
       digitalWrite(ledRow_0, LOW);
       digitalWrite(ledRow_1, HIGH);
       digitalWrite(ledRow_2, LOW);    
@@ -480,23 +503,17 @@ void update_leds(){
       digitalWrite(ledRow_1, LOW);
       digitalWrite(ledRow_2, HIGH);
     }
-    led0 = board[i][0];
-    led1 = board[i][1];
-    led2 = board[i][2];
+    led0 = board[ledRow_Active][0];
+    led1 = board[ledRow_Active][1];
+    led2 = board[ledRow_Active][2];
 
     update_led(led0, ledColumn_Player_0, ledColumn_Computer_0);
     update_led(led1, ledColumn_Player_1, ledColumn_Computer_1);
     update_led(led2, ledColumn_Player_2, ledColumn_Computer_2);
-    
-    delay(5);
-    digitalWrite(ledColumn_Player_0, HIGH); //off
-    digitalWrite(ledColumn_Player_1, HIGH); //off
-    digitalWrite(ledColumn_Player_2, HIGH); //off
-    digitalWrite(ledColumn_Computer_0, HIGH); //off
-    digitalWrite(ledColumn_Computer_1, HIGH); //off
-    digitalWrite(ledColumn_Computer_2, HIGH); //off
-    
+    ledTime = millis();
   }
+    
+  }else turn_off_leds();
 }
 
 }
@@ -513,6 +530,7 @@ void setup() {
   pinMode(buttonPin_7, INPUT);
   pinMode(buttonPin_8, INPUT);
 
+  pinMode(choose_order_pin, INPUT);
   pinMode(led_computer_turn, OUTPUT);
   
   pinMode(ledRow_0, OUTPUT);
@@ -526,10 +544,13 @@ void setup() {
   pinMode(ledColumn_Player_2, OUTPUT);
   pinMode(ledColumn_Computer_2, OUTPUT);
   
+  digitalWrite(led_computer_turn, HIGH);
 
+  
   //Serial.begin(9600);
   tic::time_waiting = millis();
   ledTime = millis();
+  gameOver_time = millis();
 }
 
 
