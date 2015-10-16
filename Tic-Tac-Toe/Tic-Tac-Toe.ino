@@ -15,8 +15,6 @@ const int buttonPin_8 = 10;    // the number of the pushbutton pin_1
 const int choose_order_pin = 1; //The number of the choose order button
 const int led_computer_turn = 0;
 
-uint8_t ledRow_Active = 0;
-uint8_t LEDS = HIGH;
 const int ledRow_0 = 11;
 const int ledRow_1 = 12;
 const int ledRow_2 = 13;
@@ -27,9 +25,12 @@ const int ledColumn_Computer_1 = A3;
 const int ledColumn_Player_2 = A4;
 const int ledColumn_Computer_2 = A5;
 
-unsigned long ledTime, gameOver_time, ledTimer;
+unsigned long ledTime, gameOver_time, ledTimer, computerLedTimer;
 
-uint8_t led0, led1, led2; //used for the led loop
+uint8_t led0, led1, led2; //used for the LED loop
+uint8_t ledRow_Active = 0; //current active LED row
+uint8_t LEDS = HIGH; //LEDs on or off
+uint8_t computer_played = 0;
 
 int buttonState_0 = HIGH;
 int buttonState_1 = HIGH;    
@@ -132,13 +133,15 @@ Pos debounce_button(const int buttonPin, long *lastDebounceTime, long debounceDe
   //int reading = read_exclusive_button(buttonPin);
 
   int reading = digitalRead(buttonPin);
-  int exclusiveReceive = read_exclusive_button(buttonPin);
+  if(reading == 0){
+     int exclusiveReceive = read_exclusive_button(buttonPin);
 
-  if((reading==0)&&(!exclusiveReceive)){
-    *lastButtonState = reading;
-    return create_position(-1, -1);
+     if(!exclusiveReceive){
+      *lastButtonState = reading;
+      return create_position(-1, -1);
+    }
   }
-  //Serial.println(reading);
+  
  
   if (reading != *lastButtonState) {
     *lastDebounceTime = millis();
@@ -184,6 +187,10 @@ Pos_weight create_Pos_weight(int x, int y, int weight) {
 
 void update_leds();
 void update_leds(int board[][3]);
+void turn_off_leds();
+
+
+
 
 /**
  * Creates the AI next possible movements to use in the min max.
@@ -214,6 +221,7 @@ Pos_vector_zsize get_next_position(int board[][3]) {
 
 
 Pos read_player_movement() {
+  //update_leds();
   Pos pos = debounce_button(buttonPin_0, &lastDebounceTime_0, debounceDelay, &buttonState_0, &lastButtonState_0);
   if(pos.x > -1) return pos;
   pos = debounce_button(buttonPin_1, &lastDebounceTime_1, debounceDelay, &buttonState_1, &lastButtonState_1);
@@ -224,6 +232,7 @@ Pos read_player_movement() {
   if(pos.x > -1) return pos;
   pos = debounce_button(buttonPin_4, &lastDebounceTime_4, debounceDelay, &buttonState_4, &lastButtonState_4);
   if(pos.x > -1) return pos;
+  //update_leds();
   pos = debounce_button(buttonPin_5, &lastDebounceTime_5, debounceDelay, &buttonState_5, &lastButtonState_5);
   if(pos.x > -1) return pos;
   pos = debounce_button(buttonPin_6, &lastDebounceTime_6, debounceDelay, &buttonState_6, &lastButtonState_6);
@@ -240,7 +249,7 @@ void write_player_movement(Pos posit, int player_id) {
 
 
 /**
- * Check row and colun at the same time to save processing time
+ * Check row and column at the same time to save processing time
  */
 int check_row_column(int board[][3]) {
   int i, j;
@@ -372,6 +381,24 @@ Pos search_next_position(){
   return next_position;
 }
 
+/**
+ * Turn off all LEDs before starting a new row to avoid flickering
+ */
+
+void turn_off_leds(){
+
+  digitalWrite(ledColumn_Player_0, HIGH); //off
+  digitalWrite(ledColumn_Player_1, HIGH); //off
+  digitalWrite(ledColumn_Player_2, HIGH); //off
+  digitalWrite(ledColumn_Computer_0, HIGH); //off
+  digitalWrite(ledColumn_Computer_1, HIGH); //off
+  digitalWrite(ledColumn_Computer_2, HIGH); //off
+  
+  digitalWrite(ledRow_0, LOW);
+  digitalWrite(ledRow_1, LOW);
+  digitalWrite(ledRow_2, LOW);
+}
+
 ////////////////////////////////////////////////////////////////////////////////////
 void person_turn();
 
@@ -379,17 +406,25 @@ void person_turn();
  * We assumed that the AI will always generate a valid movement, so we just have to write it.
  */
 void computer_turn() {
+  if(computer_played==0){
+    
+    computerLedTimer = millis();
+    digitalWrite(led_computer_turn, HIGH);
+    Pos next_movement = search_next_position();
+    write_player_movement(next_movement, 1);
 
-  digitalWrite(led_computer_turn, HIGH);
-  Pos next_movement = search_next_position();
-  write_player_movement(next_movement, 1);
-  if (check_game_over(board))
-    state = game_over;
-  else
-    state = person_turn;
+    computer_played = 1;
+  }else{
+    if(millis()-computerLedTimer>500){
+      if (check_game_over(board))
+       state = game_over;
+      else
+        state = person_turn;
 
-  delay(1000);
-  digitalWrite(led_computer_turn, LOW);
+     computer_played = 0;
+     digitalWrite(led_computer_turn, LOW);
+  }
+  }
 }
 
 bool check_pos(Pos posit) {
@@ -453,14 +488,7 @@ void update_led(int led, int player0_column, int player1_column){
     write_players_columns(player0_column, HIGH, player1_column, HIGH);
 }
 
-void turn_off_leds(){
-  digitalWrite(ledColumn_Player_0, HIGH); //off
-  digitalWrite(ledColumn_Player_1, HIGH); //off
-  digitalWrite(ledColumn_Player_2, HIGH); //off
-  digitalWrite(ledColumn_Computer_0, HIGH); //off
-  digitalWrite(ledColumn_Computer_1, HIGH); //off
-  digitalWrite(ledColumn_Computer_2, HIGH); //off
-}
+
 
 /**
  * Responsible to turn on the leds of the board 3x3 with 1.
@@ -468,28 +496,14 @@ void turn_off_leds(){
  * LOW = on
  */
 void update_leds(){
-  //for(i=0;i<3;i++){ //goes by column
-//  if(millis()-ledTime<30){
-//      write_rows(HIGH, LOW, LOW);
-//      i = 0;
-//  }
-//  else if(millis()-ledTime<60){
-//      write_rows(LOW, HIGH, LOW);
-//      i = 1;
-//  }
-//  else if(millis()-ledTime<90){
-//      write_rows(LOW, LOW, HIGH);
-//      i = 2;
-//  }
-//  else{
-//    i = 0;
-//    ledTime = millis();
-//  }
+
 if(LEDS==HIGH){
-  ledTimer = millis()-ledTime;
-  if(ledTimer>=6){
+  ledTimer = millis()-ledTime; //timer
+  if(ledTimer>=1){
+    
     turn_off_leds();
-    ledRow_Active = (ledRow_Active+1)%3;
+    ledRow_Active = (ledRow_Active+1)%3; //activate next row
+    
     if(ledRow_Active==0){
       digitalWrite(ledRow_0, HIGH);
       digitalWrite(ledRow_1, LOW);
@@ -510,7 +524,7 @@ if(LEDS==HIGH){
     update_led(led0, ledColumn_Player_0, ledColumn_Computer_0);
     update_led(led1, ledColumn_Player_1, ledColumn_Computer_1);
     update_led(led2, ledColumn_Player_2, ledColumn_Computer_2);
-    ledTime = millis();
+    ledTime = millis(); //restart timer
   }
     
   }else turn_off_leds();
@@ -546,8 +560,6 @@ void setup() {
   
   digitalWrite(led_computer_turn, HIGH);
 
-  
-  //Serial.begin(9600);
   tic::time_waiting = millis();
   ledTime = millis();
   gameOver_time = millis();
